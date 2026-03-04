@@ -289,14 +289,15 @@ export default function SimulationPage() {
               }
             }
           },
-          onclose: () => {
+          onclose: (e: CloseEvent) => {
+            console.warn('Session closed. Code:', e?.code, 'Reason:', e?.reason, 'WasClean:', e?.wasClean);
             // Only fully disconnect if not transitioning
             if (!isTransitioning) {
               setIsConnected(false);
             }
           },
           onerror: (e: ErrorEvent) => {
-            console.error('Session error:', e);
+            console.error('Session error:', e?.message || e);
           }
         }
       });
@@ -341,9 +342,13 @@ export default function SimulationPage() {
         const base64Data = btoa(binary);
 
         sessionPromise.then((session: any) => {
-          session.sendRealtimeInput({
-            media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
-          });
+          try {
+            session.sendRealtimeInput({
+              media: { data: base64Data, mimeType: 'audio/pcm;rate=16000' }
+            });
+          } catch (sendErr) {
+            // Silently ignore - WebSocket may have closed
+          }
         }).catch(() => { });
       };
 
