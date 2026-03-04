@@ -70,13 +70,17 @@ export default function SimulationPage() {
     aiRef.current = new GoogleGenAI({ apiKey: process.env.GEMINI_API_KEY });
 
     // Request camera access for the user panel
-    navigator.mediaDevices.getUserMedia({ video: true })
-      .then(stream => {
-        if (userVideoRef.current) {
-          userVideoRef.current.srcObject = stream;
-        }
-      })
-      .catch(err => console.warn('Camera access denied or not available:', err));
+    if (navigator.mediaDevices?.getUserMedia) {
+      navigator.mediaDevices.getUserMedia({ video: true })
+        .then(stream => {
+          if (userVideoRef.current) {
+            userVideoRef.current.srcObject = stream;
+          }
+        })
+        .catch(err => console.warn('Camera access denied or not available:', err));
+    } else {
+      console.warn('MediaDevices API not available (likely non-HTTPS context). Camera disabled.');
+    }
 
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
 
@@ -167,6 +171,9 @@ export default function SimulationPage() {
 
       // Ensure we get the microphone stream
       if (!mediaStreamRef.current) {
+        if (!navigator.mediaDevices?.getUserMedia) {
+          throw new Error('MediaDevices API not available. Please use HTTPS or localhost to access microphone.');
+        }
         mediaStreamRef.current = await navigator.mediaDevices.getUserMedia({
           audio: { deviceId: microphoneId && microphoneId !== 'default' ? { exact: microphoneId } : undefined }
         });
