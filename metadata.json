@@ -1,0 +1,8 @@
+{
+  "name": "AI Interview Simulator",
+  "description": "An AI-assisted interview simulation product with real-time audio interaction.",
+  "requestFramePermissions": [
+    "microphone",
+    "camera"
+  ]
+}
