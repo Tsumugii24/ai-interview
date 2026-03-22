@@ -273,6 +273,7 @@ export default function SimulationPage() {
       clearInterval(timer);
       clearStageMonitorTimers();
       disconnectSession();
+      resetInterviewLifecycleState();
       if (userSubtitleTimerRef.current) clearTimeout(userSubtitleTimerRef.current);
       if (aiSubtitleTimerRef.current) clearTimeout(aiSubtitleTimerRef.current);
       if (userVideoRef.current?.srcObject) {
@@ -398,6 +399,30 @@ export default function SimulationPage() {
     return trimmedInstruction
       ? `${trimmedInstruction}\n\n${interviewMasterPrompt}`
       : interviewMasterPrompt;
+  };
+
+  const resetInterviewLifecycleState = () => {
+    resetInterview();
+    completionHandledRef.current = false;
+    stageAdvanceRequestedRef.current = false;
+    currentStageRef.current = 1;
+    isInterviewCompleteRef.current = false;
+    interviewStartedAtRef.current = null;
+    interviewEndedAtRef.current = null;
+    transcriptRef.current = [];
+    conversationHistoryRef.current = '';
+    latestFinalizedUserUtteranceRef.current = '';
+    latestFinalizedAiUtteranceRef.current = '';
+    userSubtitleStreamRef.current = createSubtitleStreamState();
+    aiSubtitleStreamRef.current = createSubtitleStreamState();
+    aiTranscriptDraftRef.current = '';
+    lastUserTextRef.current = '';
+    aiSubtitleBufferRef.current = '';
+    monitorDirtyRef.current = false;
+    monitorQueuedRef.current = false;
+    monitorInFlightRef.current = false;
+    lastMonitorCompletedAtRef.current = 0;
+    clearStageMonitorTimers();
   };
 
   const appendTranscriptEntries = (role: SpeakerRole, texts: string[]) => {
@@ -1020,24 +1045,14 @@ export default function SimulationPage() {
       return;
     }
 
+    resetInterviewLifecycleState();
     interviewStartedAtRef.current = new Date();
-    interviewEndedAtRef.current = null;
     setIsEvaluatingStage(false);
     setIsConfirmEndOpen(false);
     setIsCompletionOpen(false);
     setIsSaveRecordOpen(false);
-    resetInterview();
     completionHandledRef.current = false;
     setTranscript([]);
-    transcriptRef.current = [];
-    conversationHistoryRef.current = '';
-    latestFinalizedUserUtteranceRef.current = '';
-    latestFinalizedAiUtteranceRef.current = '';
-    monitorDirtyRef.current = false;
-    monitorQueuedRef.current = false;
-    monitorInFlightRef.current = false;
-    lastMonitorCompletedAtRef.current = 0;
-    clearStageMonitorTimers();
     resetSubtitleState();
     await connectSession();
   };
@@ -1202,9 +1217,11 @@ export default function SimulationPage() {
           endedAt: endedAt.toISOString(),
         })
       });
+      resetInterviewLifecycleState();
       navigate('/records');
     } catch (err) {
       console.error(err);
+      resetInterviewLifecycleState();
       navigate('/dashboard');
     } finally {
       setIsSavingRecord(false);
@@ -1214,6 +1231,7 @@ export default function SimulationPage() {
   const handleSkipSave = () => {
     setIsCompletionOpen(false);
     setIsSaveRecordOpen(false);
+    resetInterviewLifecycleState();
     navigate('/dashboard');
   };
 
