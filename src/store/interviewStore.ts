@@ -12,6 +12,7 @@ interface InterviewState {
     stages: StageInfo[];
     isInterviewComplete: boolean;
     advanceStage: () => void;
+    completeInterview: () => void;
     resetInterview: () => void;
 }
 
@@ -44,6 +45,14 @@ export const useInterviewStore = create<InterviewState>((set, get) => ({
             stages: stages.map(s =>
                 s.id <= currentStage ? { ...s, completed: true } : s
             ),
+        });
+    },
+
+    completeInterview: () => {
+        set({
+            currentStage: 4,
+            stages: defaultStages.map(s => ({ ...s, completed: true })),
+            isInterviewComplete: true,
         });
     },
 
