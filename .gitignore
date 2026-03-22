@@ -27,5 +27,16 @@ Thumbs.db
 *.log
 npm-debug.log*
 
+# Local database / server runtime data
+database.sqlite
+*.sqlite
+*.sqlite-*
+*.db
+*.db-*
+
+# Local debug / trace artifacts
+div_trace.txt
+*.trace
+
 # Misc
 *.tsbuildinfo
