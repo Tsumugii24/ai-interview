@@ -1,11 +1,13 @@
 # Ubuntu：与同目录 install.sh 一键安装 Caddy、部署 Caddyfile 并设置开机自启。
 #
-# 使用前在**本目录**执行：cp Caddyfile.example Caddyfile
-# 再编辑复制出来的 Caddyfile，将 your-domain.example 换成你的真实域名（该文件已被 .gitignore 忽略，不会提交）。
+# 使用前在本目录执行：cp Caddyfile.example Caddyfile
+# 再编辑复制出来的 Caddyfile，务必改两处占位（不要保留示例中的英文字面量）：
+#   1) 站点块第一行：把占位主机名换成你的真实域名；
+#   2) reverse_proxy 一行：把「:port」中的 port 换成应用真实监听端口数字（如 5050）。
+# Caddyfile 已被 .gitignore 忽略，不会提交。
 #
-# 前置条件：域名 A 记录指向本机公网 IP；安全组放行 80、443；本机应用在 127.0.0.1:5050 监听。
-# 若上游端口不同，改 reverse_proxy 那一行的地址即可。
-# 含 www 时在括号内写两个主机名；www 需在 DNS 有 A 记录后再写入，否则 HTTPS 证书申请可能失败。
+# 前置条件：域名 A 记录指向本机公网 IP；安全组放行 80、443；应用在本机对应端口监听。
+# 含 www 时在站点行写两个主机名（英文逗号分隔）；www 需在 DNS 有解析后再写，否则证书申请可能失败。
 
 your-domain.example {
 	encode gzip

@@ -1,16 +1,35 @@
 #!/usr/bin/env bash
 set -euo pipefail
 
-# 在 Ubuntu上一键：添加官方源、安装 Caddy、部署同目录下的 Caddyfile、开机自启并启动。
+# 在 Ubuntu 上一键：添加官方源、安装 Caddy、部署同目录下的 Caddyfile、开机自启并启动。
 # 用法（在服务器上，进入本脚本所在目录）：
 #   1) cp Caddyfile.example Caddyfile
-#   2) 编辑 Caddyfile，将域名改为真实值
+#   2) 编辑 Caddyfile：将占位域名、占位端口 port 改为真实值
 #   3) bash install.sh
 # 若当前用户非 root，脚本会通过 sudo 重新执行自身。
 
 if [[ "${EUID}" -ne 0 ]]; then
 	exec sudo /usr/bin/env bash "$0" "$@"
 fi
+
+# 忽略整行注释与空行后，若仍存在示例占位则返回 0（供 if 判断），否则返回 1
+caddyfile_has_unresolved_placeholders() {
+	local f="$1"
+	local body bad=0
+	body=$(grep -v '^[[:space:]]*#' "$f" | grep -v '^[[:space:]]*$' || true)
+	if echo "$body" | grep -qE '^[[:space:]]*your-domain\.example[[:space:]]*\{'; then
+		echo "错误: ${f} 仍使用占位域名 your-domain.example，请改为你的真实域名。" >&2
+		bad=1
+	fi
+	if echo "$body" | grep -qE 'reverse_proxy[[:space:]]+[^[:space:]]+:port([[:space:]]|$)'; then
+		echo "错误: ${f} 中 reverse_proxy 仍使用占位端口 port，请改为应用监听的数字端口（如 5050）。" >&2
+		bad=1
+	fi
+	if [[ "$bad" -eq 1 ]]; then
+		return 0
+	fi
+	return 1
+}
 
 SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 CADDYFILE_EXAMPLE="${SCRIPT_DIR}/Caddyfile.example"
@@ -24,19 +43,20 @@ fi
 
 if [[ ! -f "${CADDYFILE_SRC}" ]]; then
 	cp "${CADDYFILE_EXAMPLE}" "${CADDYFILE_SRC}"
-	echo "已从 Caddyfile.example 生成 Caddyfile，请将其中的 your-domain.example 改为你的真实域名后再运行本脚本。"
+	echo "已从 Caddyfile.example 生成 Caddyfile，请编辑占位域名与 reverse_proxy 中的 port 后再运行本脚本。"
+	exit 1
+fi
+
+if caddyfile_has_unresolved_placeholders "${CADDYFILE_SRC}"; then
 	exit 1
 fi
 
 if [[ -f /etc/os-release ]]; then
 	# shellcheck source=/dev/null
 	source /etc/os-release
-	case "${ID:-}" in
-	ubuntu | debian) ;;
-	*)
-		echo "警告: 当前系统为 ${ID:-unknown}，本脚本仅针对 Ubuntu / Debian 测试。" >&2
-		;;
-	esac
+	if [[ "${ID:-}" != "ubuntu" ]]; then
+		echo "警告: 当前系统为 ${ID:-unknown}，本脚本仅针对 Ubuntu 编写与测试。" >&2
+	fi
 fi
 
 echo "==> 安装依赖并添加 Caddy 官方软件源..."
@@ -55,6 +75,10 @@ echo "==> 部署 Caddyfile -> ${CADDYFILE_DST}"
 cp -f "${CADDYFILE_SRC}" "${CADDYFILE_DST}"
 chmod 644 "${CADDYFILE_DST}"
 
+if caddyfile_has_unresolved_placeholders "${CADDYFILE_DST}"; then
+	exit 1
+fi
+
 echo "==> 校验配置"
 caddy validate --config "${CADDYFILE_DST}"
 
@@ -63,11 +87,6 @@ systemctl enable caddy
 systemctl restart caddy
 sleep 1
 systemctl --no-pager --full status caddy || true
-
-if grep -q 'your-domain.example' "${CADDYFILE_DST}"; then
-	echo "" >&2
-	echo "提示: Caddyfile 仍为占位域名 your-domain.example，请将 ${CADDYFILE_SRC} 或服务器上的 ${CADDYFILE_DST} 改成你的真实域名后执行: sudo systemctl reload caddy" >&2
-fi
 
 echo ""
 echo "完成。"
