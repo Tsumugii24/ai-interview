@@ -40,3 +40,6 @@ div_trace.txt
 
 # Misc
 *.tsbuildinfo
+
+# Caddyfile
+deploy/caddy/Caddyfile
